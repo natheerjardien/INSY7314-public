@@ -1,0 +1,33 @@
+[
+  {
+    "id": "6620d9d5-6f7d-4310-8778-e82a6b9ee716",
+    "name": "Test User",
+    "email": "test@example.com",
+    "password": "$2b$10$6lBpsoQg2oorbD5Z/8CK8eVBVtwZDU8rhzMp/4hO42wfL.DfJ6CGe"
+  },
+  {
+    "id": "96b44508-cc3c-4f01-adef-ac15366f2042",
+    "name": "Kyle",
+    "email": "example@email.com",
+    "password": "$2b$10$.Nr1/ip9TYROuv9mD4xWluIaDDXJ3lsbrkRhwkv/VRt6f4rB9y1J6"
+  },
+  {
+    "id": "9ef36d33-82e7-4136-9c75-d01de03578dd",
+    "name": "Mark",
+    "email": "example1@email.com",
+    "password": "$2b$10$WphfdPD54yGGqb3uaoAsw.qx9CySrsJff5/E2JjCM/DxEAfSI5Uiq"
+  },
+  {
+    "id": "77536964-9585-4a04-8c44-84899558b499",
+    "name": "Mark",
+    "email": "example2@email.com",
+    "password": "$2b$10$FS4Kj2D.SSqUFchcM81Pu.JtlPWUuO/nlgaTKsm/yoJFYzsZ10ONe"
+  },
+  {
+    "id": "4c50133b-6d76-4e02-8e28-82cf7298fac2",
+    "name": "Bob",
+    "email": "email@email.com",
+    "password": "$2b$10$Kfkizz8djKgjOh3cHy3IIu7jx3fKrwhvh7NxXso7/VnItx3XIT7E.",
+    "role": "Freelancer"
+  }
+]
