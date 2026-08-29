@@ -29,5 +29,11 @@
     "email": "email@email.com",
     "password": "$2b$10$Kfkizz8djKgjOh3cHy3IIu7jx3fKrwhvh7NxXso7/VnItx3XIT7E.",
     "role": "Freelancer"
+  },
+  {
+    "id": "17165a0b-931f-4b12-86fe-ee208756cfa9",
+    "name": "Natheer",
+    "email": "testing@email.com",
+    "password": "$2b$10$4nkFu6.8aP6.IqL2BDGvSeT/fdcoK05qbwRfSYd3SPN2V8hHEndDi"
   }
 ]
