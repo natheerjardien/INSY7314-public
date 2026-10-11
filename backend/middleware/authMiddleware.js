@@ -8,12 +8,21 @@ const validateAuth = async (req, res, next) => // (rudderz243, 2026)
     let token;
 
     // check for the token
-    if ( req.headers.authorization && req.headers.authorization.startsWith("Bearer") ) 
-    {
+    if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer ")
+) { 
         try {
 
         token = req.headers.authorization.split(" ")[1];
-        const decode = jwt.verify(token, process.env.JWT_SECRET);
+        if (!process.env.JWT_SECRET) {
+    console.error("JWT_SECRET is not configured.");
+    return res.status(500).json({
+        message: "Server authentication is not configured."
+    });
+}
+
+const decode = jwt.verify(token, process.env.JWT_SECRET);
 
         // try and find the user associated with that token
         req.user = await User.findById(decode.id).select("-password");

@@ -5,9 +5,11 @@ const path = require("path");
 
 const User = require("../models/user");
 const generateToken = require("../utils/generateToken");
+const { sanitizeInput, isMalicious } = require("../utils/sanitizer");
 
 // helper functions for local file storage (Node.js, 2024).
 const usersFile = path.join(__dirname, "..", "data", "users.json");
+
 
 const getUsers = () => {
     // checks if file exists, if not, it creates an empty array
@@ -29,6 +31,41 @@ const registerUser = async (req, res) => {
     {
         const { name, email, password, role } = req.body;
 
+        // Validate field types.
+        if (
+            typeof name !== "string" ||
+            typeof email !== "string" ||
+            typeof password !== "string"
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Name, email and password must be valid text values"
+            });
+        }
+
+        // Only allow the roles supported by the application.
+        if (role !== undefined && !["Client", "Freelancer"].includes(role)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid account role"
+            });
+        }
+
+        // Validate basic field requirements.
+        if (
+            name.trim().length < 2 ||
+            name.trim().length > 100 ||
+            email.trim().length > 254 ||
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
+            password.length < 8 ||
+            password.length > 128
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide a valid name, email and password of 8–128 characters"
+            });
+        }
+
         // Validates all the required fields
         if (!name || !email || !password) 
         {
@@ -37,6 +74,30 @@ const registerUser = async (req, res) => {
                 message: "Name, email and password are required"
             });
         }
+
+        // Checks whether inputs contain malicious injection strings (OWASP, 2021).
+        if (isMalicious(name) || isMalicious(email) || isMalicious(password)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid credentials provided."
+            });
+        }
+
+        // Sanitizes input values before processing (OWASP, 2021).
+        const cleanName = sanitizeInput(name).trim();
+        const cleanEmail = sanitizeInput(email).trim();
+
+            if (
+                !cleanName ||
+                !cleanEmail ||
+                isMalicious(cleanName) ||
+                isMalicious(cleanEmail)
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid name or email"
+                });
+            }
 
         // hash password (applies to both storage modes) (Bcrypt, 2024).
         const salt = await bcrypt.genSalt(12);
@@ -49,7 +110,9 @@ const registerUser = async (req, res) => {
         if (process.env.STORAGE_MODE.toString() === "mongo") 
         {
             // check if email is already taken (Mongoose, 2024).
-            const existingUser = await User.findOne({ email: email.toLowerCase() });
+            const existingUser = await User.findOne({
+            email: cleanEmail.toLowerCase()
+        });
             
             if (existingUser) 
             {
@@ -58,8 +121,8 @@ const registerUser = async (req, res) => {
 
             // saves the new user to db
             const user = await User.create({
-                name: name.trim(),
-                email: email.toLowerCase().trim(),
+                name: cleanName,
+                email: cleanEmail.toLowerCase(),
                 password: hashedPassword,
                 role: assignedRole
             });
@@ -72,7 +135,9 @@ const registerUser = async (req, res) => {
         else 
         {
             const users = getUsers();
-            const existingUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+            const existingUser = users.find(
+            u => u.email.toLowerCase() === cleanEmail.toLowerCase()
+        );
 
             if (existingUser) 
             {
@@ -82,8 +147,8 @@ const registerUser = async (req, res) => {
             // generates a random uuid for the local user (Node.js, 2024).
             const newUser = {
                 id: crypto.randomUUID(),
-                name: name.trim(),
-                email: email.toLowerCase().trim(),
+                name: cleanName,
+                email: cleanEmail.toLowerCase(),
                 password: hashedPassword,
                 role: assignedRole
             };
@@ -117,11 +182,33 @@ const loginUser = async (req, res) => {
         const { email, password } = req.body;
 
         // Validates all the required fields
-        if (!email || !password)
-        {
+        
+        if (
+            typeof email !== "string" ||
+            typeof password !== "string" ||
+            !email.trim() ||
+            !password
+        ) {
             return res.status(400).json({
                 success: false,
                 message: "Email and password are required"
+            });
+        }
+
+        // Validates for malicious payloads and non-string types prior to database queries (Jovanovic, 2020).
+        if (isMalicious(email) || isMalicious(password)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid credentials"
+            });
+        }
+
+        const cleanEmail = sanitizeInput(email).trim();
+
+        if (!cleanEmail || isMalicious(cleanEmail)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid credentials"
             });
         }
 
@@ -130,13 +217,13 @@ const loginUser = async (req, res) => {
         // mongodb logic
         if (process.env.STORAGE_MODE.toString() === "mongo") 
         {
-            user = await User.findOne({ email: email.toLowerCase().trim() });
+            user = await User.findOne({ email: cleanEmail.toLowerCase() });
         }
         // local file storage logic
         else 
         {
             const users = getUsers();
-            user = users.find(u => u.email.toLowerCase() === email.toLowerCase().trim());
+            user = users.find(u => u.email.toLowerCase() === cleanEmail.toLowerCase());
             // maps the 'id' to '_id' so the token generator works consistently for both modes
             if (user)
             {
@@ -148,7 +235,7 @@ const loginUser = async (req, res) => {
         // we keep the message vague ("invalid credentials") so attackers dont know if the email exists
         if (!user) 
         {
-            return res.status(401).json({ success: false, message: "invalid credentials" });
+            return res.status(401).json({ success: false, message: "Invalid credentials" });
         }
 
         // compare plain text password with hashed password (Bcrypt, 2024).
@@ -197,5 +284,9 @@ module.exports = {
    Mongoose, 2024. Queries. [source code]. Available: <https://mongoosejs.com/docs/queries.html> [Accessed 25 August 2026].
    
    Node.js, 2024. File System. [source code]. Available: <https://nodejs.org/api/fs.html> [Accessed 25 August 2026].
+
+   OWASP, 2021. A05:2025 Injection. [Online] OWASP Foundation. Available from: <https://owasp.org/Top10/2025/A05_2025-Injection/> [Accessed 03 September 2026].
+
+   Stuttard, D. and Pinto, M., 2011. The Web Application Hacker's Handbook: Finding and Exploiting Security Flaws. 2nd edn. Indianapolis: Wiley Publishing.
 
 */
